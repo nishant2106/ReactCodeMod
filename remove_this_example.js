@@ -9,7 +9,7 @@ class App extends Component {
     }
   }
   
-  class ListContainer extends Component {
+class ListContainer extends Component {
     render() {
       const no = 10;
       const fun = ()=>{return 0};
@@ -17,5 +17,5 @@ class App extends Component {
       const items = raw && raw.length ? JSON.parse(raw) : [];
       return ( <List items={items} />);
     }
-  }
+}
   
