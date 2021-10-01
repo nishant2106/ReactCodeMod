@@ -1,0 +1,11 @@
+{
+  "name": "react-codemod",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "codemod":"jscodeshift -t ./transform.js  ./index.js"
+  },
+  "author": "",
+  "license": "MIT"
+}
