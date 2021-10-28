@@ -4,23 +4,22 @@ class Three extends Component {
   state = {
     year: 1995,
     type: "Mercedes",
-    used : true,
+    used: true
   };
   swapCar = () => {
     this.setState({
-      year: 2017,
+      year: 2018,
       type: "BMW",
-      used : true,
+      used: false
     });
   };
   swapCar2 = () => {
     this.setState({
       year: 2019,
       type: "BMW",
-      used : true,
+      used: false
     });
   };
-
 
   render() {
     return (
@@ -30,6 +29,7 @@ class Three extends Component {
         <ul>
           <li>{this.state.type}</li>
           <li>{this.state.year}</li>
+          <li>{this.state.used ? "Used Car" : "Brand New!"}</li>
         </ul>
         <button onClick={this.swapCar}>Swap Car!</button>
       </div>
