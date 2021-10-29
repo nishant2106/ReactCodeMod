@@ -1,4 +1,9 @@
 class Three extends Component {
+   const [year,yearSetter]=useState(1995);
+  const [type,typeSetter]=useState("Mercedes");
+  const [used,usedSetter]=useState(true);
+
+
   swapCar = () => {
     this.setState({
       year: 2018,
@@ -6,11 +11,21 @@ class Three extends Component {
       used: false
     });
   };
+  swapCar2 = () => {
+    this.setState({
+      year: 2019,
+      type: "BMW",
+      used: false
+    });
+  };
 
-   const [year,yearSetter]=useState('1995');
-  const [type,typeSetter]=useState('Mercedes');
-  const [used,usedSetter]=useState('true');
-
+  /*
+    const swapCar = () => {
+      changeYear(2018);
+      changeType("BMW");
+      changeCondition(false);
+    };
+  */
 
   render() {
     return (
@@ -26,16 +41,16 @@ class Three extends Component {
       </div>
     );
   }
-}class four extends Component {
-  const [year,yearSetter]=useState('2000');
-  const [type,typeSetter]=useState('Audi');
-  const [used,usedSetter]=useState('true');
+}class Four extends Component {
+  const [year,yearSetter]=useState(1996);
+  const [type,typeSetter]=useState("BMW");
+  const [used,usedSetter]=useState(true);
 
 
   swapCar = () => {
     this.setState({
-      year: 2018,
-      type: "BMW",
+      year: 2011,
+      type: "Audi",
       used: false
     });
   };
