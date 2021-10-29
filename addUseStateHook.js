@@ -1,9 +1,11 @@
+import React, { Component } from "react";
+
 class Three extends Component {
-   const [year,yearSetter]=useState(1995);
-  const [type,typeSetter]=useState("Mercedes");
-  const [used,usedSetter]=useState(true);
-
-
+  state = {
+    year: 1995,
+    type: "Mercedes",
+    used: true
+  };
   swapCar = () => {
     this.setState({
       year: 2018,
@@ -19,13 +21,13 @@ class Three extends Component {
     });
   };
 
-  /*
-    const swapCar = () => {
-      changeYear(2018);
-      changeType("BMW");
-      changeCondition(false);
-    };
-  */
+/*
+  const swapCar = () => {
+    changeYear(2018);
+    changeType("BMW");
+    changeCondition(false);
+  };
+*/
 
   render() {
     return (
@@ -41,12 +43,14 @@ class Three extends Component {
       </div>
     );
   }
-}class Four extends Component {
-  const [year,yearSetter]=useState(1996);
-  const [type,typeSetter]=useState("BMW");
-  const [used,usedSetter]=useState(true);
+}
 
-
+class Four extends Component {
+  state = {
+    year: 1996,
+    type: "BMW",
+    used: true
+  };
   swapCar = () => {
     this.setState({
       year: 2011,
@@ -70,3 +74,5 @@ class Three extends Component {
     );
   }
 }
+
+export default Three;
