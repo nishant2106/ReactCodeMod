@@ -9,8 +9,8 @@ export default function transformer(file, api) {
   
   j(file.source).find(j.ClassDeclaration).forEach(p=>{
     var class_slice = (file.source.slice(p.value.start , p.value.end));
-
-    // state declaraion Replacement 
+    
+    //PART 1 state declarations
     const state_declaration =j(class_slice).find(j.ClassProperty,{
       	key :{
         	type : "Identifier",
@@ -21,22 +21,20 @@ export default function transformer(file, api) {
       }
       
     });
-    
-    //console.log(prop)
+
     var state_start =state_declaration.__paths[0].value.value.start;
     var state_end =state_declaration.__paths[0].value.value.end;                           
     
-    //console.log(class_slice.slice(start, end));
     var state_string = "const [object, objectSetter] = useState(";
     
     state_string +=class_slice.slice(state_start, state_end);
     state_string += ");";
-    //console.log(state_string);
-    //state_declaration.replaceWith(state_string);
+
     state_replacements.push(state_string);
     
-
-  // setState declaraion Replacement    
+    
+    // PART2 setState Declaration
+    
 	let setState_declaration =j(class_slice)
     .find(j.ExpressionStatement)
     .find(j.CallExpression,{
@@ -72,8 +70,12 @@ export default function transformer(file, api) {
   });
   
   let count=0;
-    
-    let fs2 = j(file.source).find(j.ClassDeclaration).find(j.ClassProperty,{
+    let fs2 = j(file.source).find(j.ClassDeclaration).find(j.ExpressionStatement).forEach((setState)=>{
+      	setState.replace(setState_replacements[count++]);
+    }).toSource();
+  
+  count =0;
+    fs2 = j(fs2).find(j.ClassDeclaration).find(j.ClassProperty,{
       	key :{
         	type : "Identifier",
             name : "state",
@@ -82,16 +84,9 @@ export default function transformer(file, api) {
         type: "ObjectExpression",
       } 
     }).forEach((state)=>{
-    	//console.log(setState);
       	state.replace(state_replacements[count++]);
     }).toSource();
   
-  	count=0;
-  	fs2 = j(file.source).find(j.ClassDeclaration).find(j.ExpressionStatement).forEach((setState)=>{
-    	//console.log(setState);
-      	setState.replace(setState_replacements[count++]);
-    }).toSource();
-    
-    //console.log(fs2);
+
   return fs2;
 }
