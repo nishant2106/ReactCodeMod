@@ -5,7 +5,10 @@ var importStrings = "";
 var functionDecl = "";
 var renderFunc = "";
 var constructorFunc = "";
+var MethodDefinitions = "";
+var classProperties = "";
 var componentWillUnmountFunc = ""
+var exportDefaultDecl = ""
 const fs = ""
 
 function importDecl(file,api){
@@ -17,6 +20,22 @@ function importDecl(file,api){
       var end = decl.value.end
       importStrings += (fs.slice(start,end)) + "\n"
     })
+}
+
+function removeComponentMod(file,api){
+	const j = api.jscodeshift;
+  
+  	const tmp = j(file.source)
+    .find(j.ImportSpecifier,{
+      imported:{type:"Identifier",name:"Component"}
+    }) 
+    console.log(tmp)
+    return j(file.source)
+    .find(j.ImportSpecifier,{
+      imported:{type:"Identifier",name:"Component"}
+    }) 
+    .remove()
+    .toSource()
 }
 
 function importUseEffectMod(file,api){
@@ -47,7 +66,10 @@ function classDecl(file,api){
 
  	const root = j(file.source);
 	const p = root.find(j.ClassDeclaration)
-    functionDecl += `function ${p.__paths[0].value.id.name} (props) {`
+    if(p){
+
+    	functionDecl += `function ${p.__paths[0].value.id.name} (props) {`
+    }
 }
 
 function componentWillUnmountMod(file,api){
@@ -59,7 +81,6 @@ function componentWillUnmountMod(file,api){
                          	type:"Identifier",
                           	name:"componentWillUnmount"
                          }}).find(j.BlockStatement)
-  
   if(componentWillUnmount.__paths.length){
   
     const start = componentWillUnmount.__paths[0].value.start
@@ -71,7 +92,6 @@ function componentWillUnmountMod(file,api){
 function renderMod(file,api){
     var fs = file.source
     const j = api.jscodeshift;
-  	console.log(fs)
     
     const render_ =j(fs).find(j.MethodDefinition,{
         key:{
@@ -79,13 +99,55 @@ function renderMod(file,api){
           name : "render"
         }
     }).find(j.BlockStatement)
-    console.log(render_)
-    
-    const start = render_.__paths[0].value.start
-    const end = render_.__paths[0].value.end
-    console.log(start)
-    console.log(end)
-    renderFunc += fs.slice(start, end)
+    if(render_.__paths.length){
+    	const start = render_.__paths[0].value.start
+    	const end = render_.__paths[0].value.end
+    	renderFunc += fs.slice(start+1, end-3)
+    }
+}
+
+function methodsMod(file,api){
+  const j = api.jscodeshift;
+  const root = j(file.source);
+  const lifeCycleMethods = ["componentDidMount","shouldComponentUpdate","componentDidUpdate","componentDidCatch","componentWillMount","render","constructor"]
+  const methods = root.find(j.ClassDeclaration).find(j.MethodDefinition);
+  const methods_path = methods.__paths
+  for(let i=0;i < methods_path.length;i++){
+    if(lifeCycleMethods.indexOf(methods_path[i].value.key.name) == -1){
+        //console.log(methods_path[i].value.value.params[0].name)
+  		let start = methods_path[i].value.start
+    	let end = methods_path[i].value.end
+        MethodDefinitions += "const "; 
+        let method = file.source.slice(start,end);
+        let j = 0;
+      	//console.log(method)
+      	while(method[j] != '('){
+          //console.log(method[j]);
+          MethodDefinitions += method[j];
+          j++;
+        }
+      	MethodDefinitions += " = ";
+      	while(method[j] != ')'){
+          MethodDefinitions += method[j];
+          j++;
+        }
+      	MethodDefinitions += ") => ";
+      	j++;
+      	MethodDefinitions += file.source.slice(start + j, end) + "\n";     	
+    }
+  }
+  console.log(MethodDefinitions);
+}
+function classPropertyMod(file,api){
+  const j = api.jscodeshift;
+  const root = j(file.source);
+  const methods = root.find(j.ClassDeclaration).find(j.ClassProperty);
+  const methods_path = methods.__paths
+  for(let i=0;i < methods_path.length;i++){
+  		let start = methods_path[i].value.start
+    	let end = methods_path[i].value.end
+        classProperties += "const "+ file.source.slice(start,end) + "\n"
+  }
 }
 function remove_constructor1(file, api) {
   const j = api.jscodeshift;
@@ -122,24 +184,37 @@ function remove_constructor2(file, api) {
   	kind: "constructor"
   })
   .find(j.BlockStatement)
+  if(temp1.__paths.length){
   
-  let start = temp1.__paths[0].value.start
-  let end = temp1.__paths[0].value.end
+  	let start = temp1.__paths[0].value.start
+  	let end = temp1.__paths[0].value.end
   
-  constructorFunc += fs.slice(start+1,end - 1)
+  	constructorFunc += fs.slice(start+1,end - 1)
+  }
 }
 function constructorMod(file,api){
 	const j = api.jscodeshift;
   	const remove_constructor_1 = remove_constructor1(file,api);
   	remove_constructor2(remove_constructor_1,api)
 }
+function exportDefaultMod(file,api){
+ 	const j = api.jscodeshift;
+  	const root = j(file.source);
+  	const temp = root.find(j.ExportDefaultDeclaration)
+    if(temp.__paths.length){
+   	 	let start = temp.__paths[0].value.start
+    	let end = temp.__paths[0].value.end
+  		exportDefaultDecl += file.source.slice(start,end)
+    }
+}
 
 export default function transformer(file, api) { 
   
 	const j = api.jscodeshift;
   	let fs = file.source
-    //file.source = file.source.replaceAll("this.","")
-   
+    file.source = file.source.replaceAll("this.","")
+   	
+  	file.source = removeComponentMod(file,api)
   	importDecl(file,api)
   	importUseEffectMod(file,api)
   	importUseStateMod(file,api)
@@ -147,7 +222,10 @@ export default function transformer(file, api) {
   	constructorMod(file,api)
   	componentWillUnmountMod(file,api)
   	renderMod(file,api)
+  	methodsMod(file,api)
+  	classPropertyMod(file,api)
+  	exportDefaultMod(file,api)
   	
-  return importStrings+functionDecl+constructorFunc+componentWillUnmountFunc+renderFunc+"}"
+  	return importStrings+functionDecl+constructorFunc+componentWillUnmountFunc+classProperties+MethodDefinitions+renderFunc+"}\n"+exportDefaultDecl
 
 }
