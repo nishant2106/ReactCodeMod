@@ -8,6 +8,7 @@ var constructorFunc = "";
 var MethodDefinitions = "";
 var classProperties = "";
 var componentWillUnmountFunc = ""
+var componentDidMountFunc = ""
 var exportDefaultDecl = ""
 const fs = ""
 
@@ -29,7 +30,6 @@ function removeComponentMod(file,api){
     .find(j.ImportSpecifier,{
       imported:{type:"Identifier",name:"Component"}
     }) 
-    console.log(tmp)
     return j(file.source)
     .find(j.ImportSpecifier,{
       imported:{type:"Identifier",name:"Component"}
@@ -67,7 +67,6 @@ function classDecl(file,api){
  	const root = j(file.source);
 	const p = root.find(j.ClassDeclaration)
     if(p){
-
     	functionDecl += `function ${p.__paths[0].value.id.name} (props) {`
     }
 }
@@ -88,6 +87,22 @@ function componentWillUnmountMod(file,api){
     componentWillUnmountFunc += "return(){\n"+fs.slice(start,end) 
   }
 }
+function componentDidMountMod(file,api){
+  const j = api.jscodeshift;
+  const fs = file.source
+  const root = j(file.source);
+  const temp = root.find(j.MethodDefinition,{
+                        key:{
+                         	type:"Identifier",
+                          	name:"componentDidMount"
+                         }}).find(j.BlockStatement)
+  if(temp.__paths.length){
+    const start = temp.__paths[0].value.start
+    const end = temp.__paths[0].value.end
+
+    componentDidMountFunc += "useEffect (() => "+fs.slice(start,end)+",[/*Enter Suitable Variables*/"+"])\n"
+  }
+}
 
 function renderMod(file,api){
     var fs = file.source
@@ -102,7 +117,7 @@ function renderMod(file,api){
     if(render_.__paths.length){
     	const start = render_.__paths[0].value.start
     	const end = render_.__paths[0].value.end
-    	renderFunc += fs.slice(start+1, end-3)
+    	renderFunc += fs.slice(start+1, end-1)
     }
 }
 
@@ -114,15 +129,12 @@ function methodsMod(file,api){
   const methods_path = methods.__paths
   for(let i=0;i < methods_path.length;i++){
     if(lifeCycleMethods.indexOf(methods_path[i].value.key.name) == -1){
-        //console.log(methods_path[i].value.value.params[0].name)
   		let start = methods_path[i].value.start
     	let end = methods_path[i].value.end
         MethodDefinitions += "const "; 
         let method = file.source.slice(start,end);
         let j = 0;
-      	//console.log(method)
       	while(method[j] != '('){
-          //console.log(method[j]);
           MethodDefinitions += method[j];
           j++;
         }
@@ -136,7 +148,6 @@ function methodsMod(file,api){
       	MethodDefinitions += file.source.slice(start + j, end) + "\n";     	
     }
   }
-  console.log(MethodDefinitions);
 }
 function classPropertyMod(file,api){
   const j = api.jscodeshift;
@@ -220,12 +231,13 @@ export default function transformer(file, api) {
   	importUseStateMod(file,api)
   	classDecl(file,api)
   	constructorMod(file,api)
+  	componentDidMountMod(file,api)
   	componentWillUnmountMod(file,api)
   	renderMod(file,api)
   	methodsMod(file,api)
   	classPropertyMod(file,api)
   	exportDefaultMod(file,api)
   	
-  	return importStrings+functionDecl+constructorFunc+componentWillUnmountFunc+classProperties+MethodDefinitions+renderFunc+"}\n"+exportDefaultDecl
+  	return importStrings+functionDecl+constructorFunc+componentDidMountFunc+componentWillUnmountFunc+classProperties+MethodDefinitions+renderFunc+"}\n"+exportDefaultDecl
 
 }
