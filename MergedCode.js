@@ -50,23 +50,40 @@ function importUseEffectMod(file,api){
         }
     })
   	if(flag){
-    	importStrings += 'import { useEffect } from "React";\n'
+      	const useEffectImport = j(file.source)
+      	.find(j.ImportSpecifier,{
+          imported:{type:"Identifier",name:"useEffect"}
+        }) 
+        if(useEffectImport.__paths.length == 0){
+    		importStrings += 'import { useEffect } from "React";\n'
+        }
     }
 }
 function importUseStateMod(file,api){
 	const j = api.jscodeshift;
 	const stateVar = j(file.source)
     					.find(j.Identifier,{name:"state"})
-    if(stateVar.length > 0){				
-      importStrings += 'import { useState } from "react";\n' 
+    if(stateVar.length > 0){
+      const useStateImport = j(file.source)
+      	.find(j.ImportSpecifier,{
+          imported:{type:"Identifier",name:"useState"}
+        })
+      if(useStateImport.__paths.length == 0){
+      	importStrings += 'import { useState } from "react";\n' 
+      }
     }
+}
+
+function removeImport(file,api){
+  const j = api.jscodeshift;
+  return j(file.source).find(j.ImportDeclaration).remove().toSource()
 }
 function classDecl(file,api){
   	const j = api.jscodeshift;
 
  	const root = j(file.source);
 	const p = root.find(j.ClassDeclaration)
-    if(p){
+    if(p.__paths.length){
     	functionDecl += `function ${p.__paths[0].value.id.name} (props) {`
     }
 }
@@ -117,7 +134,7 @@ function renderMod(file,api){
     if(render_.__paths.length){
     	const start = render_.__paths[0].value.start
     	const end = render_.__paths[0].value.end
-    	renderFunc += fs.slice(start+1, end-1)
+    	renderFunc += fs.slice(start+1, end)
     }
 }
 
@@ -208,6 +225,11 @@ function constructorMod(file,api){
   	const remove_constructor_1 = remove_constructor1(file,api);
   	remove_constructor2(remove_constructor_1,api)
 }
+
+function removeClassDecl(file,api){
+	const j = api.jscodeshift;
+  	return j(file.source).find(j.ClassDeclaration).remove().toSource()
+}
 function exportDefaultMod(file,api){
  	const j = api.jscodeshift;
   	const root = j(file.source);
@@ -218,17 +240,25 @@ function exportDefaultMod(file,api){
   		exportDefaultDecl += file.source.slice(start,end)
     }
 }
+function removeExportDefaultDecl(file,api){
+	const j = api.jscodeshift;
+  	const root = j(file.source);
+  	return root.find(j.ExportDefaultDeclaration).remove().toSource()
+}
 
 export default function transformer(file, api) { 
   
 	const j = api.jscodeshift;
   	let fs = file.source
+    
     file.source = file.source.replaceAll("this.","")
-   	
   	file.source = removeComponentMod(file,api)
+  	
   	importDecl(file,api)
   	importUseEffectMod(file,api)
   	importUseStateMod(file,api)
+  	file.source = removeImport(file,api)
+  	
   	classDecl(file,api)
   	constructorMod(file,api)
   	componentDidMountMod(file,api)
@@ -236,8 +266,13 @@ export default function transformer(file, api) {
   	renderMod(file,api)
   	methodsMod(file,api)
   	classPropertyMod(file,api)
-  	exportDefaultMod(file,api)
+  
+  	file.source = removeClassDecl(file,api)
   	
-  	return importStrings+functionDecl+constructorFunc+componentDidMountFunc+componentWillUnmountFunc+classProperties+MethodDefinitions+renderFunc+"}\n"+exportDefaultDecl
+  	exportDefaultMod(file,api)
+  	file.source = removeExportDefaultDecl(file,api)
+  	console.log(file.source)
+  
+  	return importStrings+file.source+"\n"+functionDecl+constructorFunc+componentDidMountFunc+componentWillUnmountFunc+classProperties+MethodDefinitions+renderFunc+exportDefaultDecl
 
 }
